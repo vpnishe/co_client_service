@@ -42,7 +42,7 @@ func main() {
 
 	signalHandler()
 
-	err := server.Listen("127.0.0.1:35973")
+	err := server.Listen("127.0.0.1:7000")
 
 	if err != nil {
 		glog.Fatal("start service fail,", err)
