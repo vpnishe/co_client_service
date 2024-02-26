@@ -70,8 +70,9 @@ func (wsc *WebSocketConn) Read() {
 			}
 			return
 		}
-		if mtype == websocket.BinaryMessage {
-			wsc.handler.OnRequest(pkt, wsc)
+		
+		if mtype != websocket.BinaryMessage {
+			wsc.handler.OnRequest(pkt, wsc)			
 		} else {
 			glog.Info("ws mtype=", mtype)
 		}

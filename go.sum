@@ -158,8 +158,8 @@ github.com/vmihailenco/tagparser v0.1.2 h1:gnjoVuB/kljJ5wICEEOpx98oXMWPLj22G67Vb
 github.com/vmihailenco/tagparser v0.1.2/go.mod h1:OeAg3pn3UbLjkWt+rN9oFYB6u/cQgqMEUPoW2WPyhdI=
 github.com/vpnishe/anyvalue v1.0.6 h1:4musdOMUz1T1oLu+I64sdzMNpDOUjWuESscJtioe+L4=
 github.com/vpnishe/anyvalue v1.0.6/go.mod h1:sWC4jEy3KGOnF2MP1SCU6UtXKmmPGN3tyniVNsnZwwI=
-github.com/vpnishe/co_core v1.2.21 h1:LtEm6cvQUdFV6Kp1YYiJluy90lvWCVSSgd4lrhJ2GOk=
-github.com/vpnishe/co_core v1.2.21/go.mod h1:jzvScIbvlxcy0BrYcQEZ9wv/h1EBt05+sTnBDmwz784=
+github.com/vpnishe/co_core v1.2.22 h1:Rwo7BH2G9+u9dGBOXZAl+/WJCCbTuXA5DlLsYgruKCE=
+github.com/vpnishe/co_core v1.2.22/go.mod h1:jzvScIbvlxcy0BrYcQEZ9wv/h1EBt05+sTnBDmwz784=
 github.com/vpnishe/elog v1.1.1 h1:4tG4NV4VGPNNEI5f/13SHNo1OwG5Y/JDyEKFukD2GUg=
 github.com/vpnishe/elog v1.1.1/go.mod h1:DPs5qL3y9iORJI7K8nifOIkLqOpzaiDCe5kQT4ujFfw=
 github.com/vpnishe/h3conn v1.0.12 h1:resw9Y/yD52aoksRK9TMdqKrIKFfgu5ueoDN5ymU7yo=

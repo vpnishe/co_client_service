@@ -5,7 +5,7 @@
 *.so
 *.dylib
 *.log
-co_server
+co_client_service
 # Test binary, built with `go test -c`
 *.test
 bin/
