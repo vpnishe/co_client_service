@@ -2,9 +2,9 @@ package main
 
 import (
 	"net/http"
+	"fmt"	
 
-	"github.com/gorilla/websocket"
-	core "github.com/vpnishe/co_core"
+	//core "github.com/vpnishe/co_core"
 )
 
 const (
@@ -14,19 +14,10 @@ const (
 
 type HttpServer struct {
 	handler  ProcessHandler
-	upgrader *websocket.Upgrader
 }
 
 func NewHttpServer(handler ProcessHandler) *HttpServer {
-
-	upgrader := &websocket.Upgrader{
-		CheckOrigin: func(r *http.Request) bool {
-			return true
-		},
-		EnableCompression: false,
-	}
-
-	return &HttpServer{handler: handler, upgrader: upgrader}
+	return &HttpServer{handler: handler}
 }
 
 func (hs *HttpServer) defaultHandler(w http.ResponseWriter, r *http.Request) {
@@ -42,12 +33,20 @@ func (hs *HttpServer) check(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (hs *HttpServer) getQuery(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		fmt.Fprintf(w, "ParseForm() err: %v", err)
+		return
+	}
+	hs.handler.OnRequest([]byte(r.FormValue("data")), w)		
+}
+
 func (hs *HttpServer) Listen(addr string) error {
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		if r.URL.Path == "/" {
-			hs.wsHandler(w, r)
+		if r.URL.Path == "/" {		
+			hs.getQuery(w, r)
 		} else if r.URL.Path == "/check" {
 			hs.check(w, r)
 		} else {
@@ -70,26 +69,4 @@ func (hs *HttpServer) respError(status int, w http.ResponseWriter) {
 	}
 }
 
-func (hs *HttpServer) wsHandler(w http.ResponseWriter, r *http.Request) {
 
-	defer core.PanicHandler()
-
-	conn, err := hs.upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		glog.Error("upgrade http request to ws fail", err)
-		return
-	}
-
-	glog.Info("connect attached ", conn.RemoteAddr().String())
-
-	if hs.handler != nil {
-		wsconn := NewWebSocketConn(conn, hs.handler)
-		hs.handler.OnConnected(wsconn)
-		go wsconn.Read()
-		go wsconn.Write()
-	} else {
-		glog.Error("ws conn handler haven't set")
-		conn.Close()
-	}
-
-}

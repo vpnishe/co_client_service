@@ -2,11 +2,12 @@ package main
 
 import (
 	"errors"
-	"io/ioutil"
-	"os"
+	/*"io/ioutil"
+	"os"*/
 	"runtime"
 	"strings"
 	"sync"
+	"net/http"
 
 	"github.com/vpnishe/anyvalue"
 	core "github.com/vpnishe/co_core"
@@ -26,12 +27,27 @@ type RequestHandler struct {
 	client     *core.PoleVpnClient
 	networkmgr core.NetworkManager
 	device     *core.TunDevice
+	buffer	   string
 }
 
 func NewRequestHandler() *RequestHandler {
-
 	return &RequestHandler{mutex: &sync.Mutex{}, status: CLIENT_STOPPED}
 }
+
+
+func (rh *RequestHandler) onCallback(av *anyvalue.AnyValue) {
+	pkt, _ := av.EncodeJson()
+	if len(rh.buffer) == 0 {
+		rh.buffer = "["
+	}
+	rh.buffer = rh.buffer + string(pkt) + ","
+}
+
+func (rh *RequestHandler) onCallbackRequest(av *anyvalue.AnyValue, w http.ResponseWriter) {
+	pkt, _ := av.EncodeJson()
+	w.Write(pkt)
+}
+
 
 func (rh *RequestHandler) OnClientEvent(event int, client *core.PoleVpnClient, av *anyvalue.AnyValue) {
 
@@ -119,14 +135,8 @@ func (rh *RequestHandler) OnClientEvent(event int, client *core.PoleVpnClient, a
 
 }
 
-func (rh *RequestHandler) onCallback(av *anyvalue.AnyValue) {
-
-	pkt, _ := av.EncodeJson()
-	rh.conn.Send(pkt)
-}
-
-func (rh *RequestHandler) OnRequest(pkt []byte, conn Conn) {
-
+func (rh *RequestHandler) OnRequest(pkt []byte, w http.ResponseWriter) {
+	
 	defer core.PanicHandler()
 
 	req, err := anyvalue.NewFromJson(pkt)
@@ -139,13 +149,20 @@ func (rh *RequestHandler) OnRequest(pkt []byte, conn Conn) {
 
 	if event == "start" {
 		err := rh.start(req.Get("data"))
+		rh.onCallbackRequest(anyvalue.New().Set("event", "ok"), w)
 		if err != nil {
-			rh.onCallback(anyvalue.New().Set("event", "error").Set("data.error", err.Error()))
+			rh.onCallbackRequest(anyvalue.New().Set("event", "error").Set("data.error", err.Error()), w)
 		}
+	} else if event == "status" {
+		s := rh.buffer
+		s = s[:len(s)-1]+"]"	
+		w.Write([]byte(s))
 	} else if event == "stop" {
+		rh.onCallbackRequest(anyvalue.New().Set("event", "ok"), w)		
 		rh.stop()
 	} else if event == "getlogs" {
-
+		//@@ IllayDevel, need fix log patch		
+		/*
 		logFilePath := glog.GetLogPath() + string(os.PathSeparator) + GetAppName() + "-" + GetTimeNowDate() + ".log"
 
 		data, err := ioutil.ReadFile(logFilePath)
@@ -154,34 +171,28 @@ func (rh *RequestHandler) OnRequest(pkt []byte, conn Conn) {
 			glog.Error("read log fail,", err)
 			return
 		}
-		rh.onCallback(anyvalue.New().Set("event", "logs").Set("data.logs", string(data)))
+		rh.onCallbackRequest(anyvalue.New().Set("event", "logs").Set("data.logs", string(data)), w)
+		*/
 
 	} else if event == "getbytes" {
 		var upBytes, downBytes uint64
 		if rh.client != nil {
 			upBytes, downBytes = rh.client.GetUpDownBytes()
 		}
-		rh.onCallback(anyvalue.New().Set("event", "bytes").Set("data.UpBytes", upBytes).Set("data.DownBytes", downBytes))
+		rh.onCallbackRequest(anyvalue.New().Set("event", "bytes").Set("data.UpBytes", upBytes).Set("data.DownBytes", downBytes), w)
 	} else {
 		glog.Error("invalid event,", event)
 	}
 
 }
 
-func (rh *RequestHandler) OnConnected(conn Conn) {
-
-	if rh.conn != nil {
-		rh.conn.Close(true)
-	}
-	rh.conn = conn
-}
-
+/*
 func (rh *RequestHandler) OnClosed(conn Conn, proactive bool) {
 	glog.Info(conn.String(), " closed")
 	if rh.client != nil && !rh.client.IsStoped() {
 		rh.client.Stop()
 	}
-}
+}*/
 
 func (rh *RequestHandler) start(server *anyvalue.AnyValue) error {
 	rh.mutex.Lock()

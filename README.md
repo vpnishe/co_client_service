@@ -7,7 +7,7 @@ Web and Websocket service for external gui application
 /check?version=х.х.х
 ```
 
-# WSS querys
+# WEB querys
 ## Start query
 -- Example of start query:
 ```

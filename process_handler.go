@@ -1,7 +1,8 @@
 package main
 
+import
+	"net/http"
+
 type ProcessHandler interface {
-	OnConnected(conn Conn)
-	OnRequest(pkg []byte, conn Conn)
-	OnClosed(conn Conn, proactive bool)
+	OnRequest(pkg []byte, w http.ResponseWriter)
 }
