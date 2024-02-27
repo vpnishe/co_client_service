@@ -2,8 +2,8 @@ package main
 
 import (
 	"errors"
-	/*"io/ioutil"
-	"os"*/
+	"io/ioutil"
+	"os"
 	"runtime"
 	"strings"
 	"sync"
@@ -154,16 +154,30 @@ func (rh *RequestHandler) OnRequest(pkt []byte, w http.ResponseWriter) {
 			rh.onCallbackRequest(anyvalue.New().Set("event", "error").Set("data.error", err.Error()), w)
 		}
 	} else if event == "status" {
-		s := rh.buffer
-		s = s[:len(s)-1]+"]"	
-		w.Write([]byte(s))
+		if (len(rh.buffer)>0){
+			s := rh.buffer
+			s = s[:len(s)-1]+"]"	
+			w.Write([]byte(s))
+			rh.buffer=""
+		} else {
+			rh.onCallbackRequest(anyvalue.New().Set("event", "ok"), w)			
+		}
 	} else if event == "stop" {
 		rh.onCallbackRequest(anyvalue.New().Set("event", "ok"), w)		
 		rh.stop()
+	} else if event == "network" {
+			if rh.client != nil && !rh.client.IsStoped() {
+				rh.onCallbackRequest(anyvalue.New().Set("event", "connected"), w)
+			} else {
+				rh.onCallbackRequest(anyvalue.New().Set("event", "stopped"), w)
+			}
 	} else if event == "getlogs" {
-		//@@ IllayDevel, need fix log patch		
-		/*
-		logFilePath := glog.GetLogPath() + string(os.PathSeparator) + GetAppName() + "-" + GetTimeNowDate() + ".log"
+		logFilePath := ""
+		if (len(glog.GetLogPath())==0){
+			logFilePath = GetAppName() + "-" + GetTimeNowDate() + ".log"		
+		} else {
+			logFilePath = glog.GetLogPath() + string(os.PathSeparator) + GetAppName() + "-" + GetTimeNowDate() + ".log"
+		}
 
 		data, err := ioutil.ReadFile(logFilePath)
 
@@ -171,8 +185,7 @@ func (rh *RequestHandler) OnRequest(pkt []byte, w http.ResponseWriter) {
 			glog.Error("read log fail,", err)
 			return
 		}
-		rh.onCallbackRequest(anyvalue.New().Set("event", "logs").Set("data.logs", string(data)), w)
-		*/
+		rh.onCallbackRequest(anyvalue.New().Set("event", data), w)	
 
 	} else if event == "getbytes" {
 		var upBytes, downBytes uint64
@@ -185,14 +198,6 @@ func (rh *RequestHandler) OnRequest(pkt []byte, w http.ResponseWriter) {
 	}
 
 }
-
-/*
-func (rh *RequestHandler) OnClosed(conn Conn, proactive bool) {
-	glog.Info(conn.String(), " closed")
-	if rh.client != nil && !rh.client.IsStoped() {
-		rh.client.Stop()
-	}
-}*/
 
 func (rh *RequestHandler) start(server *anyvalue.AnyValue) error {
 	rh.mutex.Lock()
