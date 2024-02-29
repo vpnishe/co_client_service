@@ -36,6 +36,7 @@ func main() {
 	glog = elog.GetLogger()
 
 	handler = NewRequestHandler()
+	
 
 	server := NewHttpServer(handler)
 

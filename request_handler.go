@@ -28,6 +28,8 @@ type RequestHandler struct {
 	networkmgr core.NetworkManager
 	device     *core.TunDevice
 	buffer	   string
+	allocated  *anyvalue.AnyValue
+	connectName string
 }
 
 func NewRequestHandler() *RequestHandler {
@@ -83,6 +85,8 @@ func (rh *RequestHandler) OnClientEvent(event int, client *core.PoleVpnClient, a
 				if err != nil {
 					glog.Error("set tun network fail,", err)
 					client.Stop()
+					rh.allocated = anyvalue.New().Set("event", "allocated")
+					rh.connectName = ""
 					return
 				}
 			}
@@ -91,8 +95,11 @@ func (rh *RequestHandler) OnClientEvent(event int, client *core.PoleVpnClient, a
 			if err != nil {
 				glog.Error("set network fail,", err)
 				client.Stop()
+				rh.allocated = anyvalue.New().Set("event", "allocated")	
+				rh.connectName = ""
 				return
 			}
+			rh.allocated = anyvalue.New().Set("event", "allocated").Set("data", av.AsMap())
 			rh.onCallback(anyvalue.New().Set("event", "allocated").Set("data", av.AsMap()))
 		}
 	case core.CLIENT_EVENT_STOPPED:
@@ -120,6 +127,8 @@ func (rh *RequestHandler) OnClientEvent(event int, client *core.PoleVpnClient, a
 		if err != nil {
 			glog.Error("create device fail,", err)
 			go client.Stop()
+			rh.allocated = anyvalue.New().Set("event", "allocated")
+			rh.connectName = ""
 			return
 		}
 
@@ -162,15 +171,20 @@ func (rh *RequestHandler) OnRequest(pkt []byte, w http.ResponseWriter) {
 		} else {
 			rh.onCallbackRequest(anyvalue.New().Set("event", "ok"), w)			
 		}
-	} else if event == "stop" {
-		rh.onCallbackRequest(anyvalue.New().Set("event", "ok"), w)		
+	} else if event == "stop" {	
 		rh.stop()
+		rh.allocated =anyvalue.New().Set("event", "allocated")	
+		rh.connectName = ""
 	} else if event == "network" {
 			if rh.client != nil && !rh.client.IsStoped() {
 				rh.onCallbackRequest(anyvalue.New().Set("event", "connected"), w)
 			} else {
 				rh.onCallbackRequest(anyvalue.New().Set("event", "stopped"), w)
 			}
+	} else if event == "getallocated" {
+		rh.onCallbackRequest(rh.allocated, w)	
+	} else if event == "getname" {		
+		rh.onCallbackRequest(anyvalue.New().Set("event", "name").Set("data.name", rh.connectName), w)			
 	} else if event == "getlogs" {
 		logFilePath := ""
 		if (len(glog.GetLogPath())==0){
@@ -208,6 +222,8 @@ func (rh *RequestHandler) start(server *anyvalue.AnyValue) error {
 	}
 
 	rh.status = CLIENT_STARTING
+	
+	rh.connectName = server.Get("Name").AsStr()
 
 	glog.Info("Connect to ", server.Get("Endpoint").AsStr())
 
@@ -254,6 +270,8 @@ func (rh *RequestHandler) stop() error {
 
 	if rh.client != nil {
 		rh.client.Stop()
+		rh.allocated = anyvalue.New().Set("event", "allocated")
+		rh.connectName = ""
 	}
 	rh.status = CLIENT_STOPPED
 	return nil
